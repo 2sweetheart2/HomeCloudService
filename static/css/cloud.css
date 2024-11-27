@@ -1,0 +1,60 @@
+body {
+    min-height: 100vh;
+    margin: 0;
+    padding: 2%;
+}
+
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    text-align: center;
+}
+
+.file-grid {
+    margin: 25px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 16px;
+}
+
+.file-card {
+    cursor: pointer;
+    aspect-ratio: 1/1;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    background-color: #f9f9f9;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+
+}
+
+.file-card img {
+    width: 80%;
+    height: 80%;
+}
+
+.file-card p {
+    margin: 0;
+}
+
+.image-card {
+    color: white;
+    background-size: cover;
+}
+
+#overlayMenu form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#overlayMenu form button[type="submit"] {
+    align-self: flex-end;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+}

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+    <meta charset="UTF-8">
+    <title>Home Cloud Server</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link href="/css/fonts.css" rel="stylesheet">
+    <script src="/js/main.js"></script>
+    <link href="/css/cloud.css" rel="stylesheet">
+</head>
+<body>
+<h3>Cloud Server</h3>
+<div style="display: flex; flex-direction: row">
+    <button onclick="overlayMenu.showModal()">Создать папку</button>
+    <input type="file" id="fileInput" style="display: none;" onchange="fileSelected()">
+    <button onclick="document.getElementById('fileInput').click()">добавить файл</button>
+</div>
+<dialog id="overlayMenu">
+    <form method="dialog" style="align-self: end">
+        <button type="submit">
+            &times;
+        </button>
+    </form>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <p>Название папки</p>
+    </div>
+    <input type="text" id="folderName" name="folderName" required placeholder="Имя папки">
+    <button type="button" onclick="createFolder()">Создать</button>
+
+</dialog>
+<div style="display: flex;flex-direction: row"><h3 id="currentPath">Путь:</h3></div>
+<div id="back" onclick="back_folder()" style="cursor: pointer"><-</div>
+<div id="fileGrid" class="file-grid"></div>
+
+<script>
+    const fileGrid = document.getElementById('fileGrid');
+
+    function change_folder(folder) {
+        paths.push(folder)
+        let p = '/'
+        paths.forEach((elemnt) => {
+            p += `${elemnt}/`
+        })
+        document.getElementById('currentPath').innerText = `Путь: ${p}`
+        load(paths)
+    }
+
+    function back_folder() {
+        paths.pop()
+        let p = '/'
+        paths.forEach((elemnt) => {
+            p += `${elemnt}/`
+        })
+        document.getElementById('currentPath').innerText = `Путь: ${p}`
+        load(paths)
+    }
+
+    function load_file(name) {
+        fetch('/get_link', {
+            method: 'POST', body: JSON.stringify({path: paths, name: name}), headers: {
+                "Content-Type": "application/json"
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                window.open(data.url, '_blank');
+            })
+            .catch(error => {
+                console.error('Ошибка при загрузке файла:', error);
+            });
+
+
+    }
+
+    function add_item(data) {
+
+        if (data.type === 'folder') {
+            const fileCard = document.createElement('div');
+            fileCard.addEventListener('click', function () {
+                change_folder(data.name)
+            });
+            fileCard.className = 'file-card';
+            fileCard.innerHTML = `
+                        <img src="/images/folder.svg">
+                        <p>${data.name}</p>
+                    `;
+            fileGrid.appendChild(fileCard);
+        } else if (data.type === 'file') {
+            const fileCard = document.createElement('div');
+            fileCard.addEventListener('click', function () {
+                load_file(data.name)
+            });
+            fileCard.className = 'file-card';
+            fileCard.innerHTML = `
+                        <h2>${data.format}</h2>
+                        <p>${data.name}</p>
+                    `;
+            fileGrid.appendChild(fileCard);
+        } else if (data.type === 'image') {
+            const fileCard = document.createElement('div');
+            fileCard.style.backgroundImage = `url(${data.url})`
+            fileCard.addEventListener('click', function () {
+                window.open(data.url, '_blank');
+            });
+            fileCard.className = 'file-card image-card';
+            fileCard.innerHTML = `
+                        <h2>${data.format}</h2>
+                        <p>${data.name}</p>
+                    `;
+            fileGrid.appendChild(fileCard);
+        }
+    }
+</script>
+<script>
+    // Загружаем список файлов и отображаем их блоками
+    let paths = []
+
+    function load(paths) {
+        fetch('/files', {
+            method: 'POST', body: JSON.stringify({path: paths}), headers: {
+                "Content-Type": "application/json",
+            }
+        })
+            .then(response => response.json())
+            .then(files => {
+                fileGrid.innerHTML = '';
+                files.files.forEach(file => {
+                    add_item(file)
+                });
+            })
+            .catch(error => {
+                console.error('Ошибка при загрузке файлов:', error);
+            });
+    }
+
+    load(paths)
+</script>
+<script>
+    function createFolder() {
+        const folderName = document.getElementById('folderName').value.trim();
+        if (folderName) {
+            // Отправляем запрос на сервер для создания папки
+            fetch('/create-folder', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({path: paths, folder: folderName})
+            })
+                .then(response => response.json())
+                .then(files => {
+                    console.log(files)
+                    fileGrid.innerHTML = '';
+                    files.files.forEach(file => {
+                        add_item(file)
+                    });
+                })
+                .catch(error => {
+                    console.error('Ошибка при создании папки:', error);
+                });
+
+            document.getElementById('overlayMenu').close();
+        } else {
+            alert('Пожалуйста, введите имя папки.');
+        }
+    }
+</script>
+<script>
+    let selectedFile = null;
+
+    function fileSelected() {
+        const fileInput = document.getElementById('fileInput');
+        selectedFile = fileInput.files[0];
+
+        if (selectedFile) {
+            uploadFile()
+        }
+    }
+
+    function uploadFile() {
+        if (!selectedFile) {
+            alert('Пожалуйста, выберите файл для загрузки.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        p = ''
+        paths.forEach((element) => p += `\\${element}`)
+        formData.append('path', p);
+        showLoader()
+        fetch('/upload', {
+            method: 'POST',
+            body: formData,
+
+        })
+            .then(response => response.json())
+            .then(data => {
+                hideLoader();
+                selectedFile = null; // Сбрасываем выбранный файл после загрузки
+                document.getElementById('fileInput').value = ''; // Сбрасываем input file
+                fileGrid.innerHTML = '';
+                data.files.forEach(file => {
+                    add_item(file)
+                });
+            })
+            .catch(error => {
+                console.error('Ошибка при загрузке файла:', error);
+            });
+    }
+</script>
+</body>
+</html>

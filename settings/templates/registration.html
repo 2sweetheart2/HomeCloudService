@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Home Cloud Server</title>
+    <link rel="stylesheet" href="/css/registration.css">
+    <link rel="stylesheet" href="/css/main.css">
+    <link href="/css/fonts.css" rel="stylesheet">
+    <script src="/js/main.js"></script>
+    <script>
+        settings = {
+            'language': 'ru',
+            'path': 'D:\\homeCloudServer',
+            'admin_login': 'admin',
+            'admin_password': 'admin'
+        }
+
+        function selectLang(language) {
+            settings['language'] = language
+            document.getElementById('lang_stage').remove();
+            document.getElementById(`dir_stage_${language}`).style.display = '';
+        }
+
+        function fetchSettings(settings) {
+
+            showLoader();
+            fetch(`/settings/set`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(settings)
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Ошибка сети: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        hideLoader()
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка при установке предпочтения языка:', error);
+                });
+        }
+    </script>
+
+</head>
+<body>
+<script>fetchSettings(settings)</script>
+<div class="container" id="lang_stage">
+    <div style="display: flex; flex-direction: row; justify-content: center; gap: 5%"><h1 id="en_welcome">welcome!</h1>
+        <h1 id="ru_welcome">привет!</h1></div>
+    <div class="select-language">
+        <div class="lang-selector" onclick="selectLang('en')">
+            <h3>EN</h3>
+            <p>continue with EN language</p>
+        </div>
+        <div class="lang-selector" onclick="selectLang('ru')">
+            <h3>RU</h3>
+            <p>продолжить с русским языком</p>
+        </div>
+    </div>
+</div>
+<div class="container" id="dir_stage_en" style="display: none">
+
+</div>
+<div class="container" id="dir_stage_ru" style="display: none">
+    <h1>Выберите папку для хранения:</h1>
+    <button id="backButton" onclick="navigateBack()" disabled><-</button>
+    <div id="directoryTree" class="directory-tree"></div>
+
+    <button onclick="submitSelectedFolder()">Подтвердить выбор</button>
+</div>
+</body>
+<script>
+    let selectedFolder = null;
+    let currentPath = 'current'; // начальный путь
+    let pathStack = [];
+
+    // Загрузка и отображение древа каталогов
+    function loadDirectoryStructure(path) {
+        fetch(`/settings/get_directory_structure?path=${encodeURIComponent(path)}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data)
+                const rootUl = document.createElement('ul');
+                displayDirectoryTree(data, rootUl);
+                const directoryTree = document.getElementById('directoryTree');
+                directoryTree.innerHTML = ''; // Очистить текущую структуру
+                pathStack = data.path_like;
+                document.getElementById('directoryTree').appendChild(rootUl);
+                document.getElementById('backButton').disabled = pathStack.length === 0;
+            });
+    }
+
+    function displayDirectoryTree(directory, parentElement) {
+        const li = document.createElement('li');
+
+        if (directory.children && directory.children.length > 0) {
+            const toggleButton = document.createElement('span');
+            toggleButton.textContent = '+';
+            toggleButton.classList.add('toggle-button');
+            toggleButton.onclick = function (event) {
+                const siblingList = this.parentElement.querySelector('ul');
+                siblingList.style.display = siblingList.style.display === 'none' ? 'block' : 'none';
+                this.textContent = siblingList.style.display === 'none' ? '+' : '-';
+                event.stopPropagation();
+            };
+            li.appendChild(toggleButton);
+        } else {
+            li.appendChild(document.createElement('span')).classList.add('toggle-button');
+        }
+
+        const textNode = document.createElement('span');
+        textNode.textContent = directory.name;
+        textNode.onclick = function () {
+            selectedFolder = directory.name;
+            document.querySelectorAll('li span:not(.toggle-button)').forEach(el => el.style.fontWeight = 'normal');
+            this.style.fontWeight = 'bold';
+        };
+        li.appendChild(textNode);
+
+        parentElement.appendChild(li);
+
+        if (directory.children) {
+            const ul = document.createElement('ul');
+            directory.children.forEach(child => {
+                displayDirectoryTree(child, ul);
+            });
+            li.appendChild(ul);
+        }
+    }
+
+    function navigateBack() {
+        if (pathStack.length > 0) {
+            pathStack.pop(); // Возвращаемся на предыдущий путь
+            currentPath = ''
+            pathStack.forEach((element) => {
+                currentPath += `${element}\\`
+            })
+            console.log(currentPath)
+            loadDirectoryStructure(currentPath);
+        }
+    }
+
+    function submitSelectedFolder() {
+        if (selectedFolder) {
+            fetch('/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({selectedFolder})
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data.message);
+                });
+        } else {
+            alert('Выберите папку!');
+        }
+    }
+
+    loadDirectoryStructure(currentPath);
+
+</script>
+</html>

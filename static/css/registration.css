@@ -1,0 +1,70 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    flex-direction: column;
+    text-align: center;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    max-width: 800px;
+    padding: 10%;
+
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+    border-radius: 25px;
+}
+
+.select-language {
+    margin-top: 5%;
+    display: flex;
+    gap: 5%;
+    flex-direction: row;
+}
+
+.lang-selector {
+    width: 50%;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    border-radius: 25px;
+    transition: box-shadow 0.3s;
+    cursor: pointer;
+
+}
+
+.lang-selector:hover {
+    width: 50%;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+    border-radius: 25px;
+}
+
+.bold {
+    font-size: 20px;
+}
+
+.directory-tree {
+    justify-content: left;
+    text-align: left;
+}
+
+.directory-tree ul {
+    list-style-type: none;
+    margin-left: 20px;
+    display: none; /* Изначально скрыты */
+}
+
+.directory-tree > ul {
+    display: block; /* Верхний уровень видим */
+}
+
+.directory-tree li {
+    cursor: pointer;
+}
+
+.toggle-button {
+    margin-right: 5px;
+    cursor: pointer;
+}
+
